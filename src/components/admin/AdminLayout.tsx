@@ -141,12 +141,46 @@ export function AdminLayout() {
             ))}
           </nav>
 
-          <div className="p-4 border-t border-border/40 space-y-2">
+          <div className="p-4 border-t border-border/40 space-y-4">
+            {/* Persistent Profile Card in Sidebar */}
+            <div className="p-3.5 rounded-2xl bg-primary/5 border border-primary/10 space-y-3">
+               <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center border border-white/10 shadow-lg">
+                    <span className="font-black text-white text-sm">{(profile?.display_name?.[0] || "A").toUpperCase()}</span>
+                  </div>
+                  <div className="flex flex-col flex-1 truncate">
+                     <span className="text-xs font-black text-foreground truncate">{profile?.display_name || "专家号"}</span>
+                     <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest leading-none">
+                        {profile?.role === 'admin' ? "系统架构师" : "专业咨询师"}
+                     </span>
+                  </div>
+               </div>
+
+               <div className="h-px bg-border/40 w-full" />
+
+               <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-medium group">
+                     <School className="w-3 h-3 text-primary/60 group-hover:text-primary transition-colors" />
+                     <span className="truncate">{profile?.school_name || "未绑定学校"}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-medium group">
+                     <Building2 className="w-3 h-3 text-accent/60 group-hover:text-accent transition-colors" />
+                     <span className="truncate">{profile?.college_name || "未绑定学院"}</span>
+                  </div>
+                  {profile?.class_name && (
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-medium group">
+                       <GraduationCap className="w-3 h-3 text-emerald-500/60 group-hover:text-emerald-500 transition-colors" />
+                       <span className="truncate">{profile.class_name} 专家组</span>
+                    </div>
+                  )}
+               </div>
+            </div>
+
             <button 
               onClick={handleSignOut}
-              className="w-full flex items-center gap-3 px-4 py-2 text-xs text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-2 text-xs text-destructive hover:bg-destructive/10 rounded-lg transition-colors group"
             >
-              <LogOut className="w-3.5 h-3.5" />
+              <LogOut className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
               退出账号
             </button>
           </div>
@@ -167,7 +201,7 @@ export function AdminLayout() {
                     </button>
                   </SheetTrigger>
                   <SheetContent side="left" className="p-0 w-72 bg-card/95 backdrop-blur-xl border-r-border/40">
-                    <div className="flex flex-col h-full">
+                    <div className="flex flex-col h-full font-sans">
                       <div className="p-6 border-b border-border/40">
                         <div className="flex items-center gap-3 mb-2">
                           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
@@ -195,7 +229,29 @@ export function AdminLayout() {
                           </button>
                         ))}
                       </nav>
-                      <div className="p-4 border-t border-border/40">
+                      <div className="p-4 border-t border-border/40 space-y-4">
+                         {/* Profile Card also in Mobile Menu */}
+                        <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10 space-y-3">
+                           <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                                <span className="font-black text-white">{(profile?.display_name?.[0] || "A").toUpperCase()}</span>
+                              </div>
+                              <div className="flex flex-col truncate">
+                                 <span className="text-sm font-black text-foreground">{profile?.display_name || "专家号"}</span>
+                                 <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+                                    {profile?.role === 'admin' ? "系统架构师" : "专业咨询师"}
+                                 </span>
+                              </div>
+                           </div>
+                           <div className="space-y-1 ml-1">
+                             <p className="text-[10px] text-muted-foreground flex items-center gap-2">
+                               <School className="w-3 h-3 text-primary/70" /> {profile?.school_name}
+                             </p>
+                             <p className="text-[10px] text-muted-foreground flex items-center gap-2">
+                               <Building2 className="w-3 h-3 text-accent/70" /> {profile?.college_name}
+                             </p>
+                           </div>
+                        </div>
                         <button 
                           onClick={handleSignOut}
                           className="w-full flex items-center gap-3 px-4 py-3 text-sm text-destructive hover:bg-destructive/10 rounded-xl"
@@ -209,40 +265,34 @@ export function AdminLayout() {
                 </Sheet>
               </div>
 
-              <h2 className="text-sm font-semibold text-foreground capitalize tracking-wide truncate max-w-[120px] md:max-w-none">
+              <h2 className="text-sm font-semibold text-foreground capitalize tracking-wide truncate max-w-[80px] md:max-w-none">
                 {MENU_ITEMS.find(i => i.path === location.pathname)?.label || "管理控制台"}
               </h2>
 
-              <div className="h-4 w-px bg-border hidden lg:block mx-2" />
+              <div className="h-4 w-px bg-border hidden sm:block mx-1 md:mx-2" />
 
-              {/* 机构信息全景（学院、学校、班级） */}
-              <div className="hidden lg:flex items-center gap-3">
+              {/* 机构信息全景（学院、学校） */}
+              <div className="hidden sm:flex items-center gap-2 md:gap-3">
                  {profile?.school_name && (
-                   <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/5 border border-primary/10 text-[11px] font-bold text-primary transition-all hover:bg-primary/10">
+                   <div className="flex items-center gap-1.5 px-2 md:px-3 py-1 rounded-full bg-primary/5 border border-primary/10 text-[10px] md:text-[11px] font-bold text-primary transition-all hover:bg-primary/10 truncate max-w-[100px] md:max-w-[200px]">
                       <School className="w-3 h-3" />
                       {profile.school_name}
                    </div>
                  )}
                  {profile?.college_name && (
-                   <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/5 border border-accent/10 text-[11px] font-bold text-accent transition-all hover:bg-accent/10">
+                   <div className="flex items-center gap-1.5 px-2 md:px-3 py-1 rounded-full bg-accent/5 border border-accent/10 text-[10px] md:text-[11px] font-bold text-accent transition-all hover:bg-accent/10 truncate max-w-[100px] md:max-w-[200px]">
                       <Building2 className="w-3 h-3" />
                       {profile.college_name}
-                   </div>
-                 )}
-                 {profile?.class_name && (
-                   <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/5 border border-emerald-500/10 text-[11px] font-bold text-emerald-500 transition-all hover:bg-emerald-500/10">
-                      <GraduationCap className="w-3 h-3" />
-                      {profile.class_name}
                    </div>
                  )}
               </div>
             </div>
             
             <div className="flex items-center gap-3 md:gap-4 text-xs">
-              <div className="hidden sm:flex flex-col items-end">
-                 <span className="font-black text-foreground tracking-tight">{profile?.display_name || "专家号"}</span>
-                 <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
-                    {profile?.role === 'admin' ? "系统架构师" : "专业咨询师"}
+              <div className="hidden sm:flex flex-col items-end max-w-[120px]">
+                 <span className="font-black text-foreground tracking-tight truncate w-full text-right">{profile?.display_name || "专家号"}</span>
+                 <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest leading-none">
+                    {profile?.role === 'admin' ? "ARCHITECTURE" : "COUNSELOR"}
                  </span>
               </div>
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center border border-white/10 shadow-lg shadow-primary/20">
