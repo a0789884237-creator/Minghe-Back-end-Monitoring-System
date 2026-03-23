@@ -36,7 +36,52 @@ export default function AdminRiskCenter() {
   const { data: alerts, isLoading } = useQuery({
     queryKey: ["admin-alerts"],
     queryFn: async (): Promise<RiskAlert[]> => {
-      // Step 1: 获取所有风险测评
+      // Step 0: 获取当前管理员/老师个人权限
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data: currentUser } = await supabase
+        .from("profiles")
+        .select("role, class_name, college_name, school_name")
+        .eq("user_id", user.id)
+        .single();
+      
+      const role = (currentUser as any)?.role;
+      const userClass = (currentUser as any)?.class_name;
+      const userCollege = (currentUser as any)?.college_name;
+      const userSchool = (currentUser as any)?.school_name;
+
+      // 老师身份：只能看到自己学校、学院、班级的学生预警
+      if (role === 'teacher' && (userClass || userCollege || userSchool)) {
+        let query = supabase
+          .from("assessment_results")
+          .select(`
+            id, user_id, severity, total_score, scale_type, created_at,
+            student:profiles!assessment_results_user_id_fkey(display_name, school_name, college_name, class_name)
+          `)
+          .in("severity", RISK_SEVERITIES)
+          .order("created_at", { ascending: false });
+
+        // 三重隔离匹配
+        if (userSchool) query = query.filter("student.school_name", "eq", userSchool);
+        if (userCollege) query = query.filter("student.college_name", "eq", userCollege);
+        if (userClass) query = query.filter("student.class_name", "eq", userClass);
+
+        const { data, error } = await query;
+        if (error) throw error;
+
+        return (data as any[]).map((a: any) => ({
+          id: a.id,
+          user_id: a.user_id,
+          severity: a.severity,
+          total_score: a.total_score,
+          scale_type: a.scale_type,
+          created_at: a.created_at,
+          display_name: a.student?.display_name || "匿名用户"
+        }));
+      }
+
+      // Step 2: 获取这些学生的风险测评 (for non-teachers or teachers without specific filters)
       const { data: assessments } = await supabase
         .from("assessment_results")
         .select("id, user_id, severity, total_score, scale_type, created_at")
@@ -45,16 +90,14 @@ export default function AdminRiskCenter() {
 
       if (!assessments || assessments.length === 0) return [];
 
-      // Step 2: 获取相关用户的 display_name
-      const userIds = [...new Set(assessments.map(a => a.user_id))];
+      // 获取所有相关学生信息以显示姓名
+      const targetUserIds = assessments.map(a => a.user_id);
       const { data: profiles } = await supabase
         .from("profiles")
         .select("user_id, display_name")
-        .in("user_id", userIds);
+        .in("user_id", targetUserIds);
 
-      const profileMap = new Map(
-        (profiles || []).map(p => [p.user_id, p.display_name])
-      );
+      const profileMap = new Map((profiles || []).map(p => [p.user_id, p.display_name]));
 
       // Step 3: 合并数据
       return assessments.map(a => ({

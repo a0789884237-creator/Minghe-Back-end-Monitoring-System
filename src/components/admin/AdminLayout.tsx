@@ -11,9 +11,15 @@ import {
   MessageSquare, 
   Settings,
   ArrowLeft,
-  LogOut
+  LogOut,
+  Menu
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import heroBanner from "@/assets/hero-banner.jpg";
 
 const MENU_ITEMS = [
@@ -130,22 +136,73 @@ export function AdminLayout() {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 flex flex-col overflow-hidden">
+        <main className="flex-1 flex flex-col overflow-hidden w-full">
           {/* Header */}
-          <header className="h-16 px-8 border-b border-border/40 flex items-center justify-between bg-card/20 backdrop-blur-md">
-            <div className="flex items-center gap-4">
-              <h2 className="text-sm font-semibold text-foreground capitalize tracking-wide">
+          <header className="h-16 px-4 md:px-8 border-b border-border/40 flex items-center justify-between bg-card/20 backdrop-blur-md sticky top-0 z-20">
+            <div className="flex items-center gap-2 md:gap-4">
+              {/* Mobile Menu Trigger */}
+              <div className="md:hidden">
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <button className="p-2 hover:bg-primary/10 rounded-lg transition-colors">
+                      <Menu className="w-5 h-5 text-primary" />
+                    </button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="p-0 w-72 bg-card/95 backdrop-blur-xl border-r-border/40">
+                    <div className="flex flex-col h-full">
+                      <div className="p-6 border-b border-border/40">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                            <ShieldCheck className="w-5 h-5 text-primary-foreground" />
+                          </div>
+                          <h1 className="font-display font-bold text-lg tracking-tight">明禾管理台</h1>
+                        </div>
+                      </div>
+                      <nav className="flex-1 p-4 space-y-1">
+                        {MENU_ITEMS.map((item) => (
+                          <button
+                            key={item.path}
+                            onClick={() => {
+                              navigate(item.path);
+                            }}
+                            className={cn(
+                              "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all",
+                              location.pathname === item.path 
+                                ? "bg-primary text-primary-foreground" 
+                                : "text-muted-foreground hover:bg-primary/10"
+                            )}
+                          >
+                            <item.icon className="w-4 h-4" />
+                            <span className="font-medium">{item.label}</span>
+                          </button>
+                        ))}
+                      </nav>
+                      <div className="p-4 border-t border-border/40">
+                        <button 
+                          onClick={handleSignOut}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-destructive hover:bg-destructive/10 rounded-xl"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          退出账号
+                        </button>
+                      </div>
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              </div>
+
+              <h2 className="text-sm font-semibold text-foreground capitalize tracking-wide truncate max-w-[120px] md:max-w-none">
                 {MENU_ITEMS.find(i => i.path === location.pathname)?.label || "管理控制台"}
               </h2>
-              <div className="h-4 w-px bg-border" />
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-bold">
+              <div className="h-4 w-px bg-border hidden xs:block" />
+              <div className="hidden xs:flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-bold whitespace-nowrap">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 在线监测中
               </div>
             </div>
             
-            <div className="flex items-center gap-4 text-xs">
-              <span className="text-muted-foreground">最后更新: {new Date().toLocaleTimeString()}</span>
+            <div className="flex items-center gap-3 md:gap-4 text-xs">
+              <span className="text-muted-foreground hidden sm:block">最后更新: {new Date().toLocaleTimeString()}</span>
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center border border-primary/20">
                 <span className="font-bold text-primary">A</span>
               </div>
@@ -153,7 +210,7 @@ export function AdminLayout() {
           </header>
 
           {/* Content Area */}
-          <section className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+          <section className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
             <Outlet />
           </section>
         </main>

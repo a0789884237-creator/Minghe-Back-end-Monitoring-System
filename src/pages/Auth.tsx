@@ -26,6 +26,9 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [className, setClassName] = useState("");
+  const [collegeName, setCollegeName] = useState("");
+  const [schoolName, setSchoolName] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,14 +36,32 @@ export default function AuthPage() {
 
     try {
       if (isLogin) {
+        // Step 1: 尝试登录 (邮箱 + 密码)
         const { error } = await signIn(email, password);
         if (error) throw error;
+
+        // Step 2: 登录成功后，额外匹配“姓名”
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("display_name, school_name, college_name, class_name")
+            .eq("user_id", user.id)
+            .single();
+          
+          if (profile && profile.display_name !== displayName) {
+             await supabase.auth.signOut();
+             throw new Error("姓名匹配失败，请检查姓名输入是否正确");
+          }
+        }
+
         toast.success("欢迎回来，明禾心灵专家");
         navigate("/admin/overview");
       } else {
-        const { error } = await signUp(email, password, displayName);
+        // 注册 (姓名 + 邮箱 + 密码 + 学校 + 学院 + 班级)
+        const { error } = await signUp(email, password, displayName, className, collegeName, schoolName);
         if (error) throw error;
-        toast.success("注册成功！请检查邮箱确认链接");
+        toast.success("注册成功！您可以直接登录");
         setIsLogin(true);
       }
     } catch (error: any) {
@@ -61,7 +82,7 @@ export default function AuthPage() {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-[480px] z-10"
+        className="w-full max-w-[560px] z-10"
       >
         {/* Logo Section */}
         <div className="text-center mb-8">
@@ -75,7 +96,7 @@ export default function AuthPage() {
           </motion.div>
           <h1 className="text-3xl font-black tracking-tight text-white mb-2">明禾心灵花园</h1>
           <p className="text-muted-foreground text-sm font-medium">
-            {isLogin ? "智慧心理管理后台 · 专家登录" : "开启您的数字心理辅导员之旅"}
+            {isLogin ? "智慧心理管理后台 · 加密身份匹配登录" : "开启您的数字心理辅导员之旅"}
           </p>
         </div>
 
@@ -84,15 +105,10 @@ export default function AuthPage() {
           {/* Subtle line decoration */}
           <div className="absolute top-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <AnimatePresence mode="wait">
-              {!isLogin && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="space-y-2"
-                >
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* 专家身份匹配：姓名 + 邮箱 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <div className="space-y-2">
                   <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">真实姓名</label>
                   <div className="relative group">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
@@ -105,24 +121,98 @@ export default function AuthPage() {
                       className="w-full bg-white/[0.03] border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all"
                     />
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+               </div>
+               <div className="space-y-2">
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">电子邮箱</label>
+                  <div className="relative group">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                    <input 
+                      required
+                      type="email" 
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="专家工作邮箱"
+                      className="w-full bg-white/[0.03] border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all"
+                    />
+                  </div>
+               </div>
+            </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">电子邮箱</label>
+              <div className="flex items-center justify-between ml-1">
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">认证密码</label>
+                {isLogin && <button type="button" className="text-[10px] font-bold text-primary/60 hover:text-primary transition-colors">忘记密码？</button>}
+              </div>
               <div className="relative group">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <input 
                   required
-                  type="email" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@garden.com"
+                  type="password" 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
                   className="w-full bg-white/[0.03] border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all"
                 />
               </div>
             </div>
+
+            <AnimatePresence mode="wait">
+              {!isLogin && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="space-y-4 pb-2 border-y border-white/5 py-4 my-2"
+                >
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">所属学校</label>
+                    <div className="relative group">
+                       <Sparkles className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                       <input 
+                          required
+                          type="text" 
+                          value={schoolName}
+                          onChange={(e) => setSchoolName(e.target.value)}
+                          placeholder="例如：吉林工商学院"
+                          className="w-full bg-white/[0.03] border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all"
+                       />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">所属学院</label>
+                      <div className="relative group">
+                        <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                        <input 
+                          required
+                          type="text" 
+                          value={collegeName}
+                          onChange={(e) => setCollegeName(e.target.value)}
+                          placeholder="例如：工商管理学院"
+                          className="w-full bg-white/[0.03] border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">所属班级</label>
+                      <div className="relative group">
+                        <Sparkles className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                        <input 
+                          required
+                          type="text" 
+                          value={className}
+                          onChange={(e) => setClassName(e.target.value)}
+                          placeholder="例如：25408"
+                          className="w-full bg-white/[0.03] border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <div className="space-y-2">
               <div className="flex items-center justify-between ml-1">

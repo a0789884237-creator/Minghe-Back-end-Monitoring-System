@@ -20,7 +20,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 export default function AdminSettings() {
-  const [activeTab, setActiveTab] = useState<'prompt' | 'question' | 'system'>('prompt');
+  const [activeTab, setActiveTab] = useState<'prompt' | 'question' | 'system' | 'profile'>('prompt');
 
   // 获取 Prompt 数据
   const { data: prompts, isLoading: isPromptsLoading, refetch: refetchPrompts } = useQuery({
@@ -102,6 +102,7 @@ export default function AdminSettings() {
          {[
            { id: 'prompt', label: 'AI 提示词管理', icon: Cpu },
            { id: 'question', label: '题库策略权重', icon: ListRestart },
+           { id: 'profile', label: '个人权限设置', icon: Settings },
            { id: 'system', label: '系统接口监控', icon: Database }
          ].map(tab => (
            <button
@@ -144,8 +145,8 @@ export default function AdminSettings() {
                                 </div>
                                 <div>
                                    <div className="flex items-center gap-2">
-                                      <span className="font-bold text-lg">{p.name || '未命名版本'}</span>
-                                      <span className="px-2 py-0.5 rounded-full bg-white/5 text-muted-foreground text-[10px] font-bold">v{p.version}</span>
+                                      <span className="font-bold text-lg text-foreground">{p.name || '未命名版本'}</span>
+                                      <span className="px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-500 text-[10px] font-bold tracking-tight">v{p.version}</span>
                                       {p.is_active && (
                                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-500 text-[10px] font-black uppercase">Active</span>
                                       )}
@@ -153,10 +154,10 @@ export default function AdminSettings() {
                                    <p className="text-xs text-muted-foreground mt-1 mb-4 flex items-center gap-2">
                                       <Clock className="w-3.5 h-3.5" /> 最后修改: {new Date(p.created_at).toLocaleString()}
                                    </p>
-                                   <div className="bg-black/40 rounded-xl p-4 border border-border/40 text-[10px] font-mono leading-relaxed text-slate-300 max-h-32 overflow-hidden relative">
+                                   <div className="bg-slate-900/10 dark:bg-black/40 rounded-xl p-4 border border-border/40 text-[10px] font-mono leading-relaxed text-slate-700 dark:text-slate-300 max-h-32 overflow-hidden relative">
                                        {p.content}
-                                       <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/80 to-transparent flex items-end justify-center pb-1">
-                                          <span className="text-white/40 text-[8px] uppercase font-bold">点击进入代码编辑器查看完整内容</span>
+                                       <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-white/90 dark:from-black/80 to-transparent flex items-end justify-center pb-1">
+                                          <span className="text-muted-foreground text-[8px] uppercase font-bold tracking-widest">点击进入代码编辑器查看完整内容</span>
                                        </div>
                                    </div>
                                 </div>
@@ -254,8 +255,12 @@ export default function AdminSettings() {
            </motion.div>
         )}
 
+        {activeTab === 'profile' && (
+           <ProfileSettingsSection />
+        )}
+
         {activeTab === 'system' && (
-           <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="p-20 text-center bg-card/5 rounded-[40px] border border-dashed border-border/40 flex flex-col items-center">
+           <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="p-20 text-center bg-card/5 rounded-[40px] border border-border/40 flex flex-col items-center">
              <div className="w-16 h-16 rounded-full bg-slate-500/10 flex items-center justify-center mb-4">
                 <Database className="w-8 h-8 text-slate-500" />
              </div>
@@ -265,5 +270,130 @@ export default function AdminSettings() {
         )}
       </div>
     </div>
+  );
+}
+
+// ---------------------------------------------------------
+// 内部组件: 个人资料设置 (用于测试权限与隔离)
+// ---------------------------------------------------------
+function ProfileSettingsSection() {
+  const { data: profile, refetch } = useQuery({
+    queryKey: ["current-user-profile"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      const { data } = await supabase.from("profiles").select("*").eq("user_id", user.id).single();
+      return data as any;
+    }
+  });
+
+  const [saving, setSaving] = useState(false);
+
+  const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setSaving(true);
+    const formData = new FormData(e.currentTarget);
+    const updates = {
+      display_name: formData.get("display_name"),
+      role: formData.get("role"),
+      school_name: formData.get("school_name"),
+      college_name: formData.get("college_name"),
+      class_name: formData.get("class_name"),
+    };
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase.from("profiles").update(updates as any).eq("user_id", user?.id!);
+      if (error) throw error;
+      toast.success("个人资料与组织归属已更新");
+      refetch();
+    } catch (e: any) {
+      toast.error("更新失败: " + e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!profile) return <div className="p-12 text-center text-muted-foreground">正在加载个人资料...</div>;
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-8 rounded-[40px] border border-border/40 bg-card/20 backdrop-blur-xl max-w-2xl mx-auto shadow-2xl">
+      <h4 className="text-lg font-bold mb-6 flex items-center gap-2 text-slate-800">
+        <div className="p-2 bg-primary/20 rounded-xl"><Settings className="w-4 h-4 text-primary" /></div>
+        专家身份与组织归属设置
+      </h4>
+      <form onSubmit={handleUpdate} className="space-y-6 text-slate-800">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <label className="text-xs font-black text-slate-500 uppercase ml-1 tracking-widest">显示名称</label>
+            <input 
+              name="display_name" 
+              defaultValue={profile.display_name} 
+              className="w-full bg-slate-100 border border-slate-200 rounded-2xl py-3.5 px-6 text-sm text-slate-800 focus:outline-none focus:border-primary/50 focus:bg-white transition-all shadow-sm"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-black text-slate-500 uppercase ml-1 tracking-widest">系统角色</label>
+            <select 
+              name="role" 
+              defaultValue={profile.role} 
+              className="w-full bg-slate-100 border border-slate-200 rounded-2xl py-3.5 px-6 text-sm text-slate-800 focus:outline-none focus:border-primary/40 focus:bg-white transition-all shadow-sm appearance-none cursor-pointer"
+            >
+              <option value="user">普通学生 (User)</option>
+              <option value="teacher">班主任/老师 (Teacher)</option>
+              <option value="admin">系统级管理员 (Admin)</option>
+            </select>
+          </div>
+        </div>
+        
+        <div className="space-y-4 pt-2 border-t border-slate-200/50">
+           <div className="space-y-2">
+            <label className="text-xs font-black text-slate-500 uppercase ml-1 tracking-widest">所在学校</label>
+            <input 
+              name="school_name" 
+              defaultValue={(profile as any).school_name} 
+              placeholder="例如: 吉林工商学院"
+              className="w-full bg-slate-100 border border-slate-200 rounded-2xl py-3.5 px-6 text-sm text-slate-800 focus:outline-none focus:border-primary/50 focus:bg-white transition-all shadow-sm"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-xs font-black text-slate-500 uppercase ml-1 tracking-widest">所属学院</label>
+              <input 
+                name="college_name" 
+                defaultValue={(profile as any).college_name} 
+                placeholder="例如: 工商管理学院"
+                className="w-full bg-slate-100 border border-slate-200 rounded-2xl py-3.5 px-6 text-sm text-slate-800 focus:outline-none focus:border-primary/50 focus:bg-white transition-all shadow-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-black text-slate-500 uppercase ml-1 tracking-widest">所属班级 (数据隔离码)</label>
+              <input 
+                name="class_name" 
+                defaultValue={profile.class_name} 
+                placeholder="例如: 25408"
+                className="w-full bg-slate-100 border border-slate-200 rounded-2xl py-3.5 px-6 text-sm text-slate-800 focus:outline-none focus:border-primary/50 focus:bg-white transition-all shadow-sm"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-primary/10 border border-primary/20 mt-4">
+          <p className="text-[11px] text-primary/80 leading-relaxed font-bold italic">
+            💡 注意：更改角色或班级后，系统将实时过滤你可见的数据内容。例如设为“老师”并填入班级后，你只能在“学生档案”中看到同班同学。
+          </p>
+        </div>
+
+        <button 
+          disabled={saving}
+          type="submit"
+          className="w-full bg-primary text-primary-foreground font-black py-4 rounded-2xl flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+        >
+          {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          保存身份变更
+        </button>
+      </form>
+    </motion.div>
   );
 }

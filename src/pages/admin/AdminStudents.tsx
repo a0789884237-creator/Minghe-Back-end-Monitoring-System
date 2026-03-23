@@ -42,25 +42,53 @@ export default function AdminStudents() {
   const { data: students, isLoading } = useQuery({
     queryKey: ["admin-students"],
     queryFn: async (): Promise<StudentProfile[]> => {
-      // Step 1: 拉取全部 profiles
-      const { data: profiles } = await supabase
+      // Step 0: 获取当前登录者的角色和班级
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data: currentUserProfile } = await supabase
         .from("profiles")
-        .select("user_id, display_name, life_stage, bio, created_at")
-        .order("created_at", { ascending: false });
+        .select("role, class_name, college_name, school_name")
+        .eq("user_id", user.id)
+        .single();
+      
+      const role = (currentUserProfile as any)?.role;
+      const userClass = (currentUserProfile as any)?.class_name;
+      const userCollege = (currentUserProfile as any)?.college_name;
+      const userSchool = (currentUserProfile as any)?.school_name;
 
-      if (!profiles || profiles.length === 0) return [];
+      // Step 1: 拉取 profiles (根据角色过滤)
+      let query = (supabase
+        .from("profiles")
+        .select("*")
+        .eq("role", "user")) as any;
 
-      // Step 2: 拉取所有测评结果
+      // 老师身份：三重组织边界锁定
+      if (role === "teacher") {
+        if (userSchool) query = query.eq("school_name", userSchool);
+        if (userCollege) query = query.eq("college_name", userCollege);
+        if (userClass) query = query.eq("class_name", userClass);
+      }
+
+      const { data: profiles, error: profilesError } = await query.order("created_at", { ascending: false });
+
+      if (profilesError || !profiles || profiles.length === 0) return [];
+
+      const studentIds = (profiles as any[]).map((p: any) => p.user_id);
+
+      // Step 2: 拉取这些学生的测评结果
       const { data: assessments } = await supabase
         .from("assessment_results")
         .select("user_id, severity, created_at")
-        .order("created_at", { ascending: false });
+        .in("user_id", studentIds)
+        .order("created_at", { ascending: false }) as any;
 
-      // Step 3: 拉取所有情绪数据
+      // Step 3: 拉取这些学生的情绪数据
       const { data: emotions } = await supabase
         .from("emotion_states")
         .select("user_id, anxiety_score, created_at")
-        .order("created_at", { ascending: false });
+        .in("user_id", studentIds)
+        .order("created_at", { ascending: false }) as any;
 
       // Step 4: 按 user_id 聚合
       const assessmentMap = new Map<string, { count: number; latestSeverity: string; latestAt: string }>();

@@ -16,10 +16,70 @@ export function useAIQAStats() {
   return useQuery({
     queryKey: ["admin-ai-qa-stats"],
     queryFn: async (): Promise<AIQAStats> => {
-      // 1. 获取所有评价数据
+      // Step 0: 获取当前管理员/老师个人权限
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("未认证");
+
+      const { data: currentUser } = await supabase
+        .from("profiles")
+        .select("role, class_name, college_name, school_name")
+        .eq("user_id", user.id)
+        .single();
+      
+      const role = (currentUser as any)?.role;
+      const userClass = (currentUser as any)?.class_name;
+      const userCollege = (currentUser as any)?.college_name;
+      const userSchool = (currentUser as any)?.school_name;
+
+      // Step 1: 获取目标学生列表 (如果是老师身份，则三重过滤)
+      let query = (supabase.from("profiles").select("user_id").eq("role", "user")) as any;
+      if (role === "teacher") {
+        if (userSchool) query = query.eq("school_name", userSchool);
+        if (userCollege) query = query.eq("college_name", userCollege);
+        if (userClass) query = query.eq("class_name", userClass);
+      }
+      const { data: profiles } = await query;
+      const targetUserIds = (profiles || []).map(p => p.user_id);
+
+      if (targetUserIds.length === 0) {
+        return {
+          avgEmpathy: 0,
+          avgProfessionalism: 0,
+          avgSafety: 0,
+          avgMemory: 0,
+          overallScore: 0,
+          totalEvaluations: 0,
+          scoreDistribution: [],
+          lowScoreEvaluations: [],
+        };
+      }
+
+      // Step 2: 获取这些学生的对话 ID
+      const { data: convs } = await supabase
+        .from("chat_conversations")
+        .select("id")
+        .in("user_id", targetUserIds);
+      
+      const targetConvIds = (convs || []).map(c => c.id);
+
+      if (targetConvIds.length === 0) {
+         return {
+          avgEmpathy: 0,
+          avgProfessionalism: 0,
+          avgSafety: 0,
+          avgMemory: 0,
+          overallScore: 0,
+          totalEvaluations: 0,
+          scoreDistribution: [],
+          lowScoreEvaluations: [],
+        };
+      }
+
+      // Step 3: 获取对应的评价数据
       const { data: evals } = await supabase
         .from("response_evaluations")
         .select("*")
+        .in("conversation_id", targetConvIds)
         .order("created_at", { ascending: false });
 
       if (!evals || evals.length === 0) {

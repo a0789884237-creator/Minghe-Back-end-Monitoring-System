@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -38,16 +40,50 @@ export default function AdminStudentDetail() {
   const navigate = useNavigate();
   const [showAllAssessments, setShowAllAssessments] = useState(false);
 
-  // 1. 获取学生基本信息
-  const { data: profile } = useQuery({
+  // 1. 获取学生基本信息（带权限校验）
+  const { data: profile, isLoading: isProfileLoading } = useQuery({
     queryKey: ["admin-student-profile", userId],
     queryFn: async () => {
-      const { data } = await supabase
+      // Step 0: 获取当前管理员/老师的权限
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data: currentUser } = await supabase
+        .from("profiles")
+        .select("role, class_name, college_name, school_name")
+        .eq("user_id", user.id)
+        .single();
+      
+      const role = (currentUser as any)?.role;
+      const userClass = (currentUser as any)?.class_name;
+      const userCollege = (currentUser as any)?.college_name;
+      const userSchool = (currentUser as any)?.school_name;
+
+      // Step 1: 获取目标学生信息
+      const { data: targetProfile, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("user_id", userId!)
         .single();
-      return data;
+      
+      if (error || !targetProfile) return null;
+
+      // Step 2: 校验三重组织边界 (如果是老师身份)
+      if (role === "teacher") {
+        const t = targetProfile as any;
+        const isMismatch = 
+          (userSchool && t.school_name !== userSchool) ||
+          (userCollege && t.college_name !== userCollege) ||
+          (userClass && t.class_name !== userClass);
+
+        if (isMismatch) {
+          toast.error("越权访问限制：您只能查看所属学校、学院及班级的学生资料");
+          navigate("/admin/users");
+          return null;
+        }
+      }
+
+      return targetProfile;
     },
     enabled: !!userId,
   });
