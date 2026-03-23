@@ -43,8 +43,7 @@ export default function AuthPage() {
         if (error) throw error;
 
         // Step 2: 登录成功后，额外匹配“姓名”以确保身份一致性
-        // 注意：signIn 返回的 data 包含 session
-        const user = data.user;
+        const user = data?.user;
         if (user) {
           const { data: profile, error: pError } = await supabase
             .from("profiles")
@@ -218,24 +217,6 @@ export default function AuthPage() {
                 </motion.div>
               )}
             </AnimatePresence>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between ml-1">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">访问密码</label>
-                {isLogin && <button type="button" className="text-[10px] font-bold text-primary/60 hover:text-primary transition-colors">忘记密码？</button>}
-              </div>
-              <div className="relative group">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                <input 
-                  required
-                  type="password" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-white/[0.03] border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all"
-                />
-              </div>
-            </div>
 
             <button 
               disabled={loading}

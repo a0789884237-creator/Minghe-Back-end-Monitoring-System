@@ -24,12 +24,12 @@ export function useAuth() {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error };
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    return { data, error };
   };
 
   const signUp = async (email: string, password: string, displayName?: string, className?: string, collegeName?: string, schoolName?: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -42,7 +42,7 @@ export function useAuth() {
         },
       },
     });
-    return { error };
+    return { data, error };
   };
 
   const signOut = async () => {
