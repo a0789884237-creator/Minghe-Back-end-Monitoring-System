@@ -27,6 +27,9 @@ interface StudentProfile {
   bio: string | null;
   role: string;
   created_at: string;
+  school_name?: string;
+  college_name?: string;
+  class_name?: string;
   // 聚合数据
   assessmentCount: number;
   latestSeverity: string | null;
@@ -139,7 +142,10 @@ export default function AdminStudents() {
     return (
       s.display_name?.toLowerCase().includes(term) ||
       s.user_id.toLowerCase().includes(term) ||
-      s.life_stage?.toLowerCase().includes(term)
+      s.life_stage?.toLowerCase().includes(term) ||
+      s.school_name?.toLowerCase().includes(term) ||
+      s.college_name?.toLowerCase().includes(term) ||
+      s.class_name?.toLowerCase().includes(term)
     );
   }) || [];
 
@@ -168,7 +174,7 @@ export default function AdminStudents() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="搜索姓名 / ID / 阶段..."
+              placeholder="搜索班级 / 学院 / 学校 / 姓名 / ID"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="pl-10 pr-4 py-2 rounded-xl bg-card border border-border/40 text-sm focus:outline-none focus:border-primary/40 w-64"
@@ -239,6 +245,11 @@ export default function AdminStudents() {
                     {student.life_stage && (
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted/40 text-muted-foreground">
                         {student.life_stage}
+                      </span>
+                    )}
+                    {student.class_name && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary whitespace-nowrap">
+                        {student.class_name} 班
                       </span>
                     )}
                   </div>
