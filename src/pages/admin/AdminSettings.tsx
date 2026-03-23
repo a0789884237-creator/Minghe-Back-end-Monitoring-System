@@ -13,7 +13,7 @@ import {
   ListRestart,
   Clock
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -286,6 +286,7 @@ function ProfileSettingsSection() {
       return data as any;
     }
   });
+  const queryClient = useQueryClient();
 
   const [saving, setSaving] = useState(false);
 
@@ -307,6 +308,8 @@ function ProfileSettingsSection() {
       if (error) throw error;
       toast.success("个人资料与组织归属已更新");
       refetch();
+      // 通知全局刷新侧边栏和顶部的身份卡片缓存
+      queryClient.invalidateQueries({ queryKey: ["current-expert-profile"] });
     } catch (e: any) {
       toast.error("更新失败: " + e.message);
     } finally {
