@@ -1,0 +1,1 @@
+ALTER TABLE public.assessment_results ADD COLUMN IF NOT EXISTS health_report jsonb DEFAULT NULL;

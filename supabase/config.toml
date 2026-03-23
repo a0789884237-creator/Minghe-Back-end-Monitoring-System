@@ -1,0 +1,37 @@
+project_id = "bfulclzhplppkkosfegn"
+
+[functions.analyze-mood]
+verify_jwt = false
+
+[functions.security-check]
+verify_jwt = false
+
+[functions.chat]
+verify_jwt = false
+
+[functions.generate-health-report]
+verify_jwt = false
+
+[functions.evaluate-response]
+verify_jwt = false
+
+[functions.extract-memories]
+verify_jwt = false
+
+[functions.import-knowledge]
+verify_jwt = false
+
+[functions.batch-import-smile]
+verify_jwt = false
+
+[functions.search-knowledge]
+verify_jwt = false
+
+[functions.generate-periodic-report]
+verify_jwt = false
+
+[functions.update-case-formulation]
+verify_jwt = false
+
+[functions.import-cpsycound]
+verify_jwt = false
