@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { 
@@ -12,7 +12,10 @@ import {
   Settings,
   ArrowLeft,
   LogOut,
-  Menu
+  Menu,
+  School,
+  GraduationCap,
+  Building2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -35,6 +38,21 @@ export function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
+
+  // 获取当前专家个人资料
+  const { data: profile } = useQuery({
+    queryKey: ["current-expert-profile"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+      return data as any;
+    }
+  });
 
   useEffect(() => {
     // 建立 Supabase WebSocket 实时通道
@@ -194,17 +212,41 @@ export function AdminLayout() {
               <h2 className="text-sm font-semibold text-foreground capitalize tracking-wide truncate max-w-[120px] md:max-w-none">
                 {MENU_ITEMS.find(i => i.path === location.pathname)?.label || "管理控制台"}
               </h2>
-              <div className="h-4 w-px bg-border hidden xs:block" />
-              <div className="hidden xs:flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-bold whitespace-nowrap">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                在线监测中
+
+              <div className="h-4 w-px bg-border hidden lg:block mx-2" />
+
+              {/* 机构信息全景（学院、学校、班级） */}
+              <div className="hidden lg:flex items-center gap-3">
+                 {profile?.school_name && (
+                   <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/5 border border-primary/10 text-[11px] font-bold text-primary transition-all hover:bg-primary/10">
+                      <School className="w-3 h-3" />
+                      {profile.school_name}
+                   </div>
+                 )}
+                 {profile?.college_name && (
+                   <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/5 border border-accent/10 text-[11px] font-bold text-accent transition-all hover:bg-accent/10">
+                      <Building2 className="w-3 h-3" />
+                      {profile.college_name}
+                   </div>
+                 )}
+                 {profile?.class_name && (
+                   <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/5 border border-emerald-500/10 text-[11px] font-bold text-emerald-500 transition-all hover:bg-emerald-500/10">
+                      <GraduationCap className="w-3 h-3" />
+                      {profile.class_name}
+                   </div>
+                 )}
               </div>
             </div>
             
             <div className="flex items-center gap-3 md:gap-4 text-xs">
-              <span className="text-muted-foreground hidden sm:block">最后更新: {new Date().toLocaleTimeString()}</span>
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center border border-primary/20">
-                <span className="font-bold text-primary">A</span>
+              <div className="hidden sm:flex flex-col items-end">
+                 <span className="font-black text-foreground tracking-tight">{profile?.display_name || "专家号"}</span>
+                 <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+                    {profile?.role === 'admin' ? "系统架构师" : "专业咨询师"}
+                 </span>
+              </div>
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center border border-white/10 shadow-lg shadow-primary/20">
+                <span className="font-black text-white text-sm">{(profile?.display_name?.[0] || "A").toUpperCase()}</span>
               </div>
             </div>
           </header>
