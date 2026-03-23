@@ -16,6 +16,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+import { supabase } from "@/integrations/supabase/client";
+
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -37,21 +39,24 @@ export default function AuthPage() {
     try {
       if (isLogin) {
         // Step 1: 尝试登录 (邮箱 + 密码)
-        const { error } = await signIn(email, password);
+        const { error, data } = await signIn(email, password);
         if (error) throw error;
 
-        // Step 2: 登录成功后，额外匹配“姓名”
-        const { data: { user } } = await supabase.auth.getUser();
+        // Step 2: 登录成功后，额外匹配“姓名”以确保身份一致性
+        // 注意：signIn 返回的 data 包含 session
+        const user = data.user;
         if (user) {
-          const { data: profile } = await supabase
+          const { data: profile, error: pError } = await supabase
             .from("profiles")
-            .select("display_name, school_name, college_name, class_name")
+            .select("display_name")
             .eq("user_id", user.id)
             .single();
           
+          if (pError) throw new Error("无法读取专家资料，请重试");
+
           if (profile && profile.display_name !== displayName) {
              await supabase.auth.signOut();
-             throw new Error("姓名匹配失败，请检查姓名输入是否正确");
+             throw new Error(`实名校验失败：该账号归属于「${profile.display_name}」，而非输入的「${displayName}」`);
           }
         }
 
@@ -138,9 +143,9 @@ export default function AuthPage() {
                </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 pb-2">
               <div className="flex items-center justify-between ml-1">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">认证密码</label>
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">访问密码</label>
                 {isLogin && <button type="button" className="text-[10px] font-bold text-primary/60 hover:text-primary transition-colors">忘记密码？</button>}
               </div>
               <div className="relative group">
@@ -150,7 +155,7 @@ export default function AuthPage() {
                   type="password" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="请输入您的加密密码"
                   className="w-full bg-white/[0.03] border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-white focus:outline-none focus:border-primary/50 focus:bg-white/[0.05] transition-all"
                 />
               </div>
