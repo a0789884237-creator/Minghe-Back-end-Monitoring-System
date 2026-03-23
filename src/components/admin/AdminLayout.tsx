@@ -167,12 +167,10 @@ export function AdminLayout() {
                      <Building2 className="w-3 h-3 text-accent/60 group-hover:text-accent transition-colors" />
                      <span className="truncate">{profile?.college_name || "未绑定学院"}</span>
                   </div>
-                  {profile?.class_name && (
-                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-medium group">
-                       <GraduationCap className="w-3 h-3 text-emerald-500/60 group-hover:text-emerald-500 transition-colors" />
-                       <span className="truncate">{profile.class_name} 专家组</span>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-medium group">
+                     <GraduationCap className="w-3 h-3 text-emerald-500/60 group-hover:text-emerald-500 transition-colors" />
+                     <span className="truncate">{profile?.class_name ? `${profile.class_name} 专家组` : "未绑定班级"}</span>
+                  </div>
                </div>
             </div>
 
@@ -243,12 +241,15 @@ export function AdminLayout() {
                                  </span>
                               </div>
                            </div>
-                           <div className="space-y-1 ml-1">
+                           <div className="space-y-1.5 ml-1">
                              <p className="text-[10px] text-muted-foreground flex items-center gap-2">
-                               <School className="w-3 h-3 text-primary/70" /> {profile?.school_name}
+                               <School className="w-3 h-3 text-primary/70" /> {profile?.school_name || "未绑定学校"}
                              </p>
                              <p className="text-[10px] text-muted-foreground flex items-center gap-2">
-                               <Building2 className="w-3 h-3 text-accent/70" /> {profile?.college_name}
+                               <Building2 className="w-3 h-3 text-accent/70" /> {profile?.college_name || "未绑定学院"}
+                             </p>
+                             <p className="text-[10px] text-muted-foreground flex items-center gap-2">
+                               <GraduationCap className="w-3 h-3 text-emerald-500/70" /> {profile?.class_name || "未绑定班级"}
                              </p>
                            </div>
                         </div>
